@@ -84,6 +84,16 @@ When active, a status bar displays caveman level and an animated campfire flicke
 
 The extension hooks `before_agent_start` to append caveman communication rules to the system prompt at the selected intensity. Within a session, the active level is stored as a custom session entry and restored on resume. Across sessions, persistent config (`~/.pi/agent/caveman.json`) provides the default level and status bar preference. Auto-clarity rules tell the model to drop caveman mode for security warnings or irreversible actions.
 
+## Warning
+
+Caveman mode only affects _output tokens_, not chain-of-thought tokens, input tokens, file read/write tool calls, etc. If your agent is in a huge codebase and you've given it a complex task, don't expect much token reduction.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jonjonrankin/pi-caveman/main/shoutout.jpg" alt="pi-caveman glowing review" width="600">
+</p>
+
+But for the cost-conscious, every token counts ;)
+
 ## Credits
 
 Based on [caveman](https://github.com/JuliusBrussee/caveman) by [Julius Brussee](https://github.com/JuliusBrussee).
