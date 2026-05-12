@@ -27,6 +27,6 @@
     "image": "https://raw.githubusercontent.com/jonjonrankin/pi-caveman/main/pi-caveman.gif"
   },
   "peerDependencies": {
-    "@mariozechner/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "*"
   }
 }
