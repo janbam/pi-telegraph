@@ -19,7 +19,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Set version from tag
-        run: npm version "${GITHUB_REF#refs/tags/v}" --no-git-tag-version
+        run: npm version "${GITHUB_REF#refs/tags/v}" --no-git-tag-version || echo "Version already matches tag"
 
       - name: Publish
         run: npm publish --access public
