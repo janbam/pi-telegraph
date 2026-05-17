@@ -43,7 +43,7 @@ pi install git:github.com/janbam/pi-telegraph
 /telegraph              Toggle on (full) / off
 /telegraph lite         Professional, no fluff
 /telegraph full         Classic telegraph (default)
-/telegraph ultra        Maximum compression
+/telegraph ultra        Maximum compression (default)
 /telegraph wenyan-lite  Semi-classical Chinese
 /telegraph wenyan       Full 文言文
 /telegraph wenyan-ultra Extreme 文言文
