@@ -1,4 +1,4 @@
-# 🪨 pi-telegraph
+# 📡 pi-telegraph
 
 **Think wide. Speak telegraph.**
 
@@ -17,9 +17,9 @@ Telegraph mode does not ask the model to think less. It asks the model to write 
 </td>
 <td width="50%">
 
-### 🪨 Telegraph (19 tokens)
+### 📡 Telegraph (19 tokens)
 
-> "New object ref each render. Inline object prop = new ref = re-render. Wrap in `useMemo`."
+> "Inline object prop → new ref each render → shallow compare fails → re-render. Fix: useMemo wrap object."
 
 </td>
 </tr>
