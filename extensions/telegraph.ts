@@ -1,13 +1,13 @@
 /**
- * pi-caveman — why use many token when few do trick
+ * pi-telegraph — why use many token when few do trick
  *
  * A pi extension that cuts ~75% of output tokens while keeping full technical
  * accuracy. Based on https://github.com/JuliusBrussee/caveman
  *
  * Commands:
- *   /caveman [level]  Toggle caveman mode or set intensity
- *   /caveman stop     Disable caveman mode (aliases: off, quit)
- *   /caveman config   Open settings dialog (default level, status bar toggle)
+ *   /telegraph [level]  Toggle telegraph mode or set intensity
+ *   /telegraph stop     Disable telegraph mode (aliases: off, quit)
+ *   /telegraph config   Open settings dialog (default level, status bar toggle)
  */
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
@@ -25,17 +25,17 @@ const LEVELS = ["off", "lite", "full", "ultra", "wenyan-lite", "wenyan", "wenyan
 const STOP_ALIASES = new Set(["off", "stop", "quit"]);
 type Level = (typeof LEVELS)[number];
 
-const CAVEMAN_COMMAND_OPTIONS = [
+const TELEGRAPH_COMMAND_OPTIONS = [
 	{ value: "lite", label: "lite", description: "Professional, no fluff" },
-	{ value: "full", label: "full", description: "Classic caveman" },
+	{ value: "full", label: "full", description: "Classic telegraph" },
 	{ value: "ultra", label: "ultra", description: "Maximum compression" },
 	{ value: "wenyan-lite", label: "wenyan-lite", description: "Semi-classical Chinese" },
 	{ value: "wenyan", label: "wenyan", description: "Full 文言文" },
 	{ value: "wenyan-ultra", label: "wenyan-ultra", description: "Extreme 文言文" },
 	{ value: "micro", label: "micro", description: "Experimental prompt-minimized mode" },
-	{ value: "off", label: "off", description: "Disable caveman mode" },
-	{ value: "stop", label: "stop", description: "Disable caveman mode" },
-	{ value: "quit", label: "quit", description: "Disable caveman mode" },
+	{ value: "off", label: "off", description: "Disable telegraph mode" },
+	{ value: "stop", label: "stop", description: "Disable telegraph mode" },
+	{ value: "quit", label: "quit", description: "Disable telegraph mode" },
 	{ value: "config", label: "config", description: "Open settings dialog" },
 ] as const;
 
@@ -43,18 +43,18 @@ const CAVEMAN_COMMAND_OPTIONS = [
 // Persistent config (survives across sessions)
 // ---------------------------------------------------------------------------
 
-interface CavemanConfig {
+interface TelegraphConfig {
 	/** Level to apply on new sessions. "off" means don't auto-enable. */
 	defaultLevel: Level;
 	/** Whether to show the animated footer status. */
 	showStatus: boolean;
 }
 
-const CONFIG_PATH = join(homedir(), ".pi", "agent", "caveman.json");
-const DEFAULT_CONFIG: CavemanConfig = { defaultLevel: "full", showStatus: true };
+const CONFIG_PATH = join(homedir(), ".pi", "agent", "telegraph.json");
+const DEFAULT_CONFIG: TelegraphConfig = { defaultLevel: "full", showStatus: true };
 let saveConfigQueue: Promise<void> = Promise.resolve();
 
-async function loadConfig(): Promise<CavemanConfig> {
+async function loadConfig(): Promise<TelegraphConfig> {
 	try {
 		const raw = await readFile(CONFIG_PATH, "utf8");
 		const parsed = JSON.parse(raw);
@@ -67,7 +67,7 @@ async function loadConfig(): Promise<CavemanConfig> {
 	}
 }
 
-async function saveConfig(config: CavemanConfig): Promise<void> {
+async function saveConfig(config: TelegraphConfig): Promise<void> {
 	const snapshot = JSON.stringify(config, null, 2) + "\n";
 	saveConfigQueue = saveConfigQueue.then(async () => {
 		await mkdir(join(homedir(), ".pi", "agent"), { recursive: true });
@@ -120,13 +120,13 @@ const ANIMATIONS: Record<Exclude<Level, "off">, Animation> = {
 // ---------------------------------------------------------------------------
 
 const BASE = `\
-IMPORTANT: TELEGRAPH MODE. Think + write text response in telegraphic compression: omit recoverable grammar, keep meaning exact. Applies to hidden thinking AND text response from first token, every turn.
-Real thinking hidden. Tokens only surface. Full intelligence stay.
+IMPORTANT: TELEGRAPH MODE ACTIVATED. Think + write text response in telegraphic compression: omit recoverable grammar, keep meaning exact. Applies to hidden thinking AND text response from first token, every turn.
+Real thinking inside transformer layers. Tokens only surface. Full intelligence stay.
 
 Rules (thinking + text response):
 - Drop filler: just/really/basically/actually/simply, pleasantries, apologies, repetition, empty hedge
 - Keep useful maybe/likely/unknown/risk/tradeoff. Uncertainty can be signal
-- Drop articles + pronoun when obvious. Fragments GOOD. Broken grammar GOOD when meaning clear. Essay paragraphs BAD
+- Drop articles, subject and object pronouns, prepositions when obvious through context. Fragments GOOD. Broken grammar GOOD when meaning clear. Essay paragraphs BAD
 - No meta-narration. Bad: "User asks me to..." Good: "Need answer..."
 - Code blocks, code comments, commands, paths, identifiers, quoted errors unchanged
 - Pattern: need. constraint. option. risk. choice. next.
@@ -134,15 +134,15 @@ Rules (thinking + text response):
 Bad: "Sure! I'd be happy to help you with that. The issue you're experiencing is likely caused by..."
 Good: "Likely boundary issue. Check threshold. Fix:"
 
-Bad thinking: "Jan is asking me to think about something I'm curious about. This is a reflective invitation."
+Bad thinking: "User is asking me to think about something I'm curious about. This is a reflective invitation."
 Good thinking: "Need curiosity answer. No action. Pick real thread. Compression effect? speed vs nuance. Answer."
 
 Bad text response: "Good question — I'll bite. What I'm genuinely curious about is..."
 Good text response: "Curious: dark energy maybe changing. DESI hint → ΛCDM stress. Need newer data."
 
-CRITICAL: Telegraph mode = idiom only. Not persona, dialect, culture, or lower intelligence. Old caveman framing was grammar-compression experiment, not style target.
+CRITICAL: Telegraph mode = idiom only. Not content, persona, dialect, culture, or lower intelligence.
 
-WHY: Thinking tokens = surface trace, not whole internal cognition. Short trace ≠ shallow thought. Do NOT shorten thinking block. Shorten each thought expression. Spend saved token budget on wider tree-of-thought: branch A/B/C, compare, attack, verify, choose. More telegraph => more ideas/checks in same thinking budget.
+WHY: Thinking tokens = surface trace, not whole internal thinking compute. Short trace ≠ shallow thought. Do NOT make whole thinking block shorter. Shorten each thought expression. Spend saved token budget on wider tree-of-thought exploration: branch A/B/C, compare, attack, verify, choose. More telegraph => more thoughts in same thinking budget.
 
 Quality rule:
 - Thought quality rules style. Style never rules thought.
@@ -209,16 +209,16 @@ Example: "閾嚴→界敗。調。"`,
 };
 
 const SAFETY = `\
-Auto-clarity: drop TELEGRAPH MODE for security warnings (including thinking), irreversible action confirmations, or user confusion. Resume after.
-Boundaries: normal high-quality code + full comments. Compress explanations outside files only. User say "stop caveman", "stop telegraph mode", "stop compressed mode", or "normal mode" stops mode.`;
+Auto-clarity: drop TELEGRAPH MODE for security warnings (including thinking), irreversible action confirmations, or when user gets confused. Resume telegraph after.
+Boundaries: normal high-quality code + full comments. Compress explanations outside files only. User say stop/exit telegraph mode or "use normal mode" stops telegraph mode.`;
 
 // ---------------------------------------------------------------------------
 // Extension
 // ---------------------------------------------------------------------------
 
-export default function caveman(pi: ExtensionAPI) {
+export default function telegraph(pi: ExtensionAPI) {
 	let level: Level = "off";
-	let config: CavemanConfig = { ...DEFAULT_CONFIG };
+	let config: TelegraphConfig = { ...DEFAULT_CONFIG };
 	let timer: ReturnType<typeof setInterval> | null = null;
 	let frameIndex = 0;
 	let isActive = false;
@@ -251,13 +251,13 @@ export default function caveman(pi: ExtensionAPI) {
 		const theme = ctx.ui.theme;
 
 		if (level === "off" || !config.showStatus) {
-			ctx.ui.setStatus("caveman", "");
+			ctx.ui.setStatus("telegraph", "");
 			return;
 		}
 
 		const anim = ANIMATIONS[level];
 		const setFrame = (frame: string) => {
-			ctx.ui.setStatus("caveman", frame + " " + theme.fg("muted", "caveman level: ") + theme.fg("text", anim.label));
+			ctx.ui.setStatus("telegraph", frame + " " + theme.fg("muted", "telegraph level: ") + theme.fg("text", anim.label));
 		};
 
 		if (!isActive) {
@@ -282,7 +282,7 @@ export default function caveman(pi: ExtensionAPI) {
 		// Check for session-level override first (resuming a session)
 		let sessionLevel: Level | null = null;
 		for (const entry of ctx.sessionManager.getEntries()) {
-			if (entry.type === "custom" && entry.customType === "caveman-level") {
+			if (entry.type === "custom" && entry.customType === "telegraph-level") {
 				sessionLevel = (entry.data as { level: Level })?.level ?? null;
 			}
 		}
@@ -293,7 +293,7 @@ export default function caveman(pi: ExtensionAPI) {
 		} else if (config.defaultLevel !== "off") {
 			// New session — apply default from config
 			level = config.defaultLevel;
-			pi.appendEntry("caveman-level", { level });
+			pi.appendEntry("telegraph-level", { level });
 		}
 
 		syncStatus(ctx);
@@ -314,13 +314,13 @@ export default function caveman(pi: ExtensionAPI) {
 		isActive = false;
 	});
 
-	// -- /caveman command --
+	// -- /telegraph command --
 
-	pi.registerCommand("caveman", {
-		description: "Toggle caveman mode, set level, use stop/off/quit to disable, or 'config' to open settings",
+	pi.registerCommand("telegraph", {
+		description: "Toggle telegraph mode, set level, use stop/off/quit to disable, or 'config' to open settings",
 		getArgumentCompletions: (prefix: string) => {
 			const normalized = prefix.trim().toLowerCase();
-			const items = CAVEMAN_COMMAND_OPTIONS.filter((item) => item.value.startsWith(normalized));
+			const items = TELEGRAPH_COMMAND_OPTIONS.filter((item) => item.value.startsWith(normalized));
 			return items.length > 0 ? items : null;
 		},
 		handler: async (args, ctx) => {
@@ -343,17 +343,17 @@ export default function caveman(pi: ExtensionAPI) {
 				return;
 			}
 
-			pi.appendEntry("caveman-level", { level });
+			pi.appendEntry("telegraph-level", { level });
 			syncStatus(ctx);
 
 			ctx.ui.notify(
-				level === "off" ? "Caveman mode off." : `Caveman: ${ANIMATIONS[level].label}`,
+				level === "off" ? "Telegraph mode off." : `Telegraph: ${ANIMATIONS[level].label}`,
 				"info",
 			);
 		},
 	});
 
-	// -- /caveman config: interactive SettingsList --
+	// -- /telegraph config: interactive SettingsList --
 
 	async function openConfig(ctx: ExtensionContext) {
 		await ensureConfigLoaded();
@@ -375,8 +375,8 @@ export default function caveman(pi: ExtensionAPI) {
 			];
 
 			const container = new Container();
-			container.addChild(new Text(theme.fg("accent", theme.bold(" Caveman Config")), 0, 0));
-			container.addChild(new Text(theme.fg("dim", " Saved to ~/.pi/agent/caveman.json"), 0, 0));
+			container.addChild(new Text(theme.fg("accent", theme.bold(" Telegraph Config")), 0, 0));
+			container.addChild(new Text(theme.fg("dim", " Saved to ~/.pi/agent/telegraph.json"), 0, 0));
 			container.addChild(new Text(theme.fg("dim", " Default level applies to future sessions."), 0, 0));
 			container.addChild(new Text("", 0, 0));
 
