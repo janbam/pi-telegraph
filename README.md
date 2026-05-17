@@ -72,6 +72,8 @@ When active, a status bar displays telegraph level and an animated campfire flic
 
 ## Levels
 
+Note: these levels were inherited from `pi-caveman` and have not yet been tested against the modified telegraph prompt.
+
 | Level                      | Style                                                                                                                      | Example                                                                            |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | **Lite**                   | No filler. Full sentences. Professional but tight.                                                                         | "Your component re-renders because you create a new object reference each render." |

@@ -51,7 +51,7 @@ interface TelegraphConfig {
 }
 
 const CONFIG_PATH = join(homedir(), ".pi", "agent", "telegraph.json");
-const DEFAULT_CONFIG: TelegraphConfig = { defaultLevel: "full", showStatus: true };
+const DEFAULT_CONFIG: TelegraphConfig = { defaultLevel: "ultra", showStatus: true };
 let saveConfigQueue: Promise<void> = Promise.resolve();
 
 async function loadConfig(): Promise<TelegraphConfig> {
