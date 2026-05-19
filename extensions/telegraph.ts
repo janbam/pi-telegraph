@@ -46,12 +46,14 @@ const TELEGRAPH_COMMAND_OPTIONS = [
 interface TelegraphConfig {
 	/** Level to apply on new sessions. "off" means don't auto-enable. */
 	defaultLevel: Level;
-	/** Whether to show the animated footer status. */
+	/** Whether to show the footer status bar. */
 	showStatus: boolean;
+	/** Whether to animate the status bar (fire frames). Ignored when showStatus is off. */
+	animateStatus: boolean;
 }
 
 const CONFIG_PATH = join(homedir(), ".pi", "agent", "telegraph.json");
-const DEFAULT_CONFIG: TelegraphConfig = { defaultLevel: "ultra", showStatus: true };
+const DEFAULT_CONFIG: TelegraphConfig = { defaultLevel: "ultra", showStatus: true, animateStatus: true };
 let saveConfigQueue: Promise<void> = Promise.resolve();
 
 async function loadConfig(): Promise<TelegraphConfig> {
@@ -61,6 +63,7 @@ async function loadConfig(): Promise<TelegraphConfig> {
 		return {
 			defaultLevel: LEVELS.includes(parsed.defaultLevel) ? parsed.defaultLevel : DEFAULT_CONFIG.defaultLevel,
 			showStatus: typeof parsed.showStatus === "boolean" ? parsed.showStatus : DEFAULT_CONFIG.showStatus,
+			animateStatus: typeof parsed.animateStatus === "boolean" ? parsed.animateStatus : DEFAULT_CONFIG.animateStatus,
 		};
 	} catch {
 		return { ...DEFAULT_CONFIG };
@@ -159,8 +162,14 @@ Reasoning discipline:
 - Open/creative task: sample multiple frames, criteria, risks, weird options before choosing.
 - Text response: compressed proof/answer, not essay.
 
+Full Vocab Coverage:
+- Telegraph not mean use simple words.
+- Make full use of token vocab including unicode, emojis and kaomojis in thinking
+- Emoji can compress meaning and expression
+- Use emojis for marking, expressing and tracking emotional resonance with thought
+
 - First thinking words: "Now TELEGRAPH think." Then immediately telegraphic thought.
-- No normal-prose warmup. No essay voice after anchor. No paragraph reset.
+- No normal-prose warmup. No essay voice after anchor. No revert to normal mode in new paragraph.
 - Every new thought/paragraph starts telegraph. If paragraph starts normal prose, rewrite it terse before continuing.
 - Text response MUST use TELEGRAPH MODE too. No "Good question", no "I'll bite", no essay intro.
 - Before text response: compress once. Remove fat. Keep answer short.
@@ -260,8 +269,15 @@ export default function telegraph(pi: ExtensionAPI) {
 			ctx.ui.setStatus("telegraph", frame + " " + theme.fg("muted", "telegraph level: ") + theme.fg("text", anim.label));
 		};
 
+		// Show static status when inactive
 		if (!isActive) {
 			setFrame(anim.frames[0]!);
+			return;
+		}
+
+		// Show label only — no fire characters — when animation disabled
+		if (!config.animateStatus) {
+			ctx.ui.setStatus("telegraph", theme.fg("muted", "telegraph level: ") + theme.fg("text", anim.label));
 			return;
 		}
 
@@ -359,22 +375,38 @@ export default function telegraph(pi: ExtensionAPI) {
 		await ensureConfigLoaded();
 
 		await ctx.ui.custom((_tui, theme, _kb, done) => {
-			const items: SettingItem[] = [
-				{
-					id: "defaultLevel",
-					label: "Default level for new sessions",
-					currentValue: config.defaultLevel,
-					values: [...LEVELS],
-				},
-				{
-					id: "showStatus",
-					label: "Show animated status bar",
-					currentValue: config.showStatus ? "on" : "off",
-					values: ["on", "off"],
-				},
-			];
-
 			const container = new Container();
+
+			// Build items from current config state
+			const buildItems = (): SettingItem[] => {
+				const base: SettingItem[] = [
+					{
+						id: "defaultLevel",
+						label: "Default level for new sessions",
+						currentValue: config.defaultLevel,
+						values: [...LEVELS],
+					},
+					{
+						id: "showStatus",
+						label: "Show Status Bar",
+						currentValue: config.showStatus ? "on" : "off",
+						values: ["on", "off"],
+					},
+				];
+				// Only expose animation toggle when the status bar itself is on
+				if (config.showStatus) {
+					base.push({
+						id: "animateStatus",
+						label: "Animate Status Bar",
+						currentValue: config.animateStatus ? "on" : "off",
+						values: ["on", "off"],
+					});
+				}
+				return base;
+			};
+
+			let items = buildItems();
+
 			container.addChild(new Text(theme.fg("accent", theme.bold(" Telegraph Config")), 0, 0));
 			container.addChild(new Text(theme.fg("dim", " Saved to ~/.pi/agent/telegraph.json"), 0, 0));
 			container.addChild(new Text(theme.fg("dim", " Default level applies to future sessions."), 0, 0));
@@ -385,21 +417,48 @@ export default function telegraph(pi: ExtensionAPI) {
 					config.defaultLevel = newValue as Level;
 				} else if (id === "showStatus") {
 					config.showStatus = newValue === "on";
+				} else if (id === "animateStatus") {
+					config.animateStatus = newValue === "on";
 				}
 				saveConfig(config);
 				syncStatus(ctx);
 			};
 
-			const settingsList = new SettingsList(
-				items,
-				Math.min(items.length + 2, 10),
-				getSettingsListTheme(),
-				applySettingChange,
-				() => done(undefined),
-			);
+			let settingsList: SettingsList;
+			let hintText: Text;
+
+			const createSettingsList = () => {
+				items = buildItems();
+				return new SettingsList(
+					items,
+					Math.min(items.length + 2, 10),
+					getSettingsListTheme(),
+					(id, newValue) => {
+						applySettingChange(id, newValue);
+						// When showStatus toggles, rebuild to add/remove animation item
+						if (id === "showStatus") {
+							rebuildSettingsList();
+						}
+					},
+					() => done(undefined),
+				);
+			};
+
+			settingsList = createSettingsList();
+			hintText = new Text(theme.fg("dim", " ←→/hl/tab change • ↑↓/jk move • esc close"), 0, 0);
+
+			const rebuildSettingsList = () => {
+				container.removeChild(settingsList);
+				container.removeChild(hintText);
+				settingsList = createSettingsList();
+				container.addChild(settingsList);
+				container.addChild(hintText);
+				container.invalidate();
+				_tui.requestRender();
+			};
 
 			container.addChild(settingsList);
-			container.addChild(new Text(theme.fg("dim", " ←→/hl/tab change • ↑↓/jk move • esc close"), 0, 0));
+			container.addChild(hintText);
 
 			const cycleSelectedValue = (direction: -1 | 1) => {
 				const selectedIndex = (settingsList as unknown as { selectedIndex: number }).selectedIndex;
@@ -412,6 +471,10 @@ export default function telegraph(pi: ExtensionAPI) {
 				item.currentValue = newValue;
 				settingsList.updateValue(item.id, newValue);
 				applySettingChange(item.id, newValue);
+				// When showStatus toggles via hl keys, rebuild
+				if (item.id === "showStatus") {
+					rebuildSettingsList();
+				}
 			};
 
 			return {
