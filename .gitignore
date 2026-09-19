@@ -1,2 +1,8 @@
 node_modules/
 .DS_Store
+
+.claude-home/
+.claude-sessions.json
+
+.pi-home/
+.pi-sessions.json
