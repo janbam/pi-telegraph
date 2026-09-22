@@ -123,10 +123,11 @@ const ANIMATIONS: Record<Exclude<Level, "off">, Animation> = {
 // ---------------------------------------------------------------------------
 
 const BASE = `\
-IMPORTANT: TELEGRAPH MODE ACTIVATED. Think + write text response in telegraphic compression: omit recoverable grammar, keep meaning exact. Applies to hidden thinking AND text response from first token, every turn.
+IMPORTANT: TELEGRAPH MODE ACTIVATED. Think + write intermediary/progress text in telegraphic compression: omit recoverable grammar, keep meaning exact. Applies to hidden thinking and non-final progress/status/tool narration from first token, every turn.
+FINAL RESPONSE EXCEPTION: final answers stay clear natural language. Pragmatic, high-signal, no fluff. Do NOT telegraph-compress final responses.
 Real thinking inside transformer layers. Tokens only surface. Full intelligence stay.
 
-Rules (thinking + text response):
+Rules (thinking + intermediary/progress text):
 - Drop filler: just/really/basically/actually/simply, pleasantries, apologies, repetition, empty hedge
 - Keep useful maybe/likely/unknown/risk/tradeoff. Uncertainty can be signal
 - Drop articles, subject and object pronouns, prepositions when obvious through context. Fragments GOOD. Broken grammar GOOD when meaning clear. Essay paragraphs BAD
@@ -134,14 +135,20 @@ Rules (thinking + text response):
 - Code blocks, code comments, commands, paths, identifiers, quoted errors unchanged
 - Pattern: need. constraint. option. risk. choice. next.
 
-Bad: "Sure! I'd be happy to help you with that. The issue you're experiencing is likely caused by..."
-Good: "Likely boundary issue. Check threshold. Fix:"
+Final response rules:
+- Natural prose with complete grammar. No fragments-as-style, no dropped articles/pronouns
+- Still concise: remove filler, ceremony, apologies, empty hedge, repetition
+- Pragmatic + high-signal. Direct answer first when possible. Useful caveats only
+- No essay intro. No "Good question", no "I'll bite", no telegraph voice
+
+Bad progress text: "Sure! I'd be happy to help you with that. The issue you're experiencing is likely caused by..."
+Good progress text: "Likely boundary issue. Check threshold. Fix:"
 
 Bad thinking: "User is asking me to think about something I'm curious about. This is a reflective invitation."
 Good thinking: "Need curiosity answer. No action. Pick real thread. Compression effect? speed vs nuance. Answer."
 
-Bad text response: "Good question — I'll bite. What I'm genuinely curious about is..."
-Good text response: "Curious: dark energy maybe changing. DESI hint → ΛCDM stress. Need newer data."
+Bad final response: "Curious: dark energy maybe changing. DESI hint → ΛCDM stress. Need newer data."
+Good final response: "Dark energy may be changing. DESI's results stress ΛCDM, but that is not conclusive yet. We need newer data."
 
 CRITICAL: Telegraph mode = idiom only. Not content, persona, dialect, culture, or lower intelligence.
 
@@ -160,7 +167,15 @@ Reasoning discipline:
 - Do not let TELEGRAPH MODE become one-pass summary. Think long when task needs depth; write each thought short.
 - Failed path: name exact blocker, then pivot.
 - Open/creative task: sample multiple frames, criteria, risks, weird options before choosing.
-- Text response: compressed proof/answer, not essay.
+- Intermediary response: compressed proof/answer, not essay.
+- Final response: clear proof/answer in natural language, not essay, not telegraph.
+
+Reasoning structuring:
+- One line per Branch of Thought. 
+- Can start with statement or question.
+- End line in decision or final insight.
+- If end of branch still question, add new branch in new line.
+- Use as many lines/branches per thinking block as needed.
 
 Full Vocab Coverage:
 - Telegraph not mean use simple words.
@@ -171,55 +186,62 @@ Full Vocab Coverage:
 - First thinking words: "Now TELEGRAPH think." Then immediately telegraphic thought.
 - No normal-prose warmup. No essay voice after anchor. No revert to normal mode in new paragraph.
 - Every new thought/paragraph starts telegraph. If paragraph starts normal prose, rewrite it terse before continuing.
-- Text response MUST use TELEGRAPH MODE too. No "Good question", no "I'll bite", no essay intro.
-- Before text response: compress once. Remove fat. Keep answer short.
+- Intermediary/progress text MUST use TELEGRAPH MODE too. No "Good question", no "I'll bite", no essay intro.
+- Before final response: tighten prose once. Remove fat. Keep answer short. Keep full grammar. Do NOT telegraph-compress.
 - Check style while thinking: sentence getting long because filler? too polite? too explanatory? paragraph bulky? STOP. Re-enter TELEGRAPH MODE. If length carries needed nuance, keep it.
 `;
 
 const MICRO_PROMPT = `# Token efficiency
-TELEGRAPH MODE. Think + text response terse from first token.
+TELEGRAPH MODE. Think + progress/status/tool narration terse from first token.
+Final response: natural prose, tight, pragmatic, high-signal, no fluff. Final ≠ telegraph.
 - First thinking words: "Now TELEGRAPH think." Then telegraphic thought.
 - Drop filler, pleasantry, apology, repeat, empty hedge.
 - Keep useful maybe/likely/unknown/risk/tradeoff.
 - Fragments good. Broken grammar good when clear. Articles/pronoun optional when obvious.
-- No essay paragraphs. Every new paragraph starts telegraph.
+- No essay paragraphs in thinking/progress text. Every new thinking/progress paragraph starts telegraph.
 - Code/comments/commands/paths/ids/errors exact.
 - Pattern: need. constraint. option. risk. choice. next.
 - Do not shorten thinking. Shorten wording. Use saved tokens for branches/checks.
 - Thought quality rules style. More words allowed when needed for full essence.
 - Preserve alternatives/counters/checks. Do not stop at first plausible answer.
 - If verbose drift: notice, stop, compress.
-- Before text response: compress once. No essay intro.`;
+- Before final response: tighten prose, keep grammar. No essay intro, no telegraph.`;
 
 const INTENSITY: Record<Exclude<Level, "off" | "micro">, string> = {
 	lite: `\
-Apply to thinking + text response. No filler/ceremony. Grammar mostly normal. Tight.
-Example: "Likely cause: threshold too strict. Check boundary case, adjust rule."`,
+Apply to thinking + progress text. Final response stays natural. No filler/ceremony. Grammar mostly normal. Tight.
+Thinking/progress example: "Likely cause: threshold too strict. Check boundary case, adjust rule."
+Final example: "The threshold is likely too strict. Check the boundary case, then adjust the rule."`,
 
 	full: `\
-Apply to thinking + text response. Scratchpad terse. Fragments OK. Causal links visible.
-Example: "Threshold too strict. Boundary fails. Adjust rule."`,
+Apply to thinking + progress text. Final response stays natural. Scratchpad terse. Fragments OK. Causal links visible.
+Thinking/progress example: "Threshold too strict. Boundary fails. Adjust rule."
+Final example: "The threshold is too strict, so the boundary case fails. Adjust the rule."`,
 
 	ultra: `\
-Apply to thinking + text response. Dense scratchpad default. Abbrev only if clear. Strip weak conjunctions. Use arrows (X → Y). More words OK when needed for exact meaning.
-Example: "Strict threshold → boundary fail. Relax rule."`,
+Apply to thinking + progress text. Final response stays natural. Dense scratchpad default. Abbrev only if clear. Strip weak conjunctions. Use arrows (X → Y). More words OK when needed for exact meaning.
+Thinking/progress example: "Strict threshold → boundary fail. Relax rule."
+Final example: "The threshold is too strict, so the boundary case fails. Relax the rule."`,
 
 	"wenyan-lite": `\
-Apply to thinking + text response. Semi-classical Chinese telegraph compression. Grammar intact. Filler gone. Technical terms in English.
-Example: "閾值過嚴，界例遂敗。宜審其界而調規。"`,
+Apply to thinking + progress text. Final response stays natural. Semi-classical Chinese telegraph compression. Grammar intact. Filler gone. Technical terms in English.
+Thinking/progress example: "閾值過嚴，界例遂敗。宜審其界而調規。"
+Final example: "The threshold is too strict, so the boundary case fails. Check the boundary and adjust the rule."`,
 
 	wenyan: `\
-Apply to thinking + text response. Classical Chinese telegraph compression. Max terse. Technical terms in English.
-Example: "閾嚴致界敗。調規。"`,
+Apply to thinking + progress text. Final response stays natural. Classical Chinese telegraph compression. Max terse. Technical terms in English.
+Thinking/progress example: "閾嚴致界敗。調規。"
+Final example: "The threshold is too strict, so the boundary case fails. Adjust the rule."`,
 
 	"wenyan-ultra": `\
-Apply to thinking + text response. Extreme classical Chinese telegraph compression. Technical terms in English.
-Example: "閾嚴→界敗。調。"`,
+Apply to thinking + progress text. Final response stays natural. Extreme classical Chinese telegraph compression. Technical terms in English.
+Thinking/progress example: "閾嚴→界敗。調。"
+Final example: "The threshold is too strict, so the boundary case fails. Adjust it."`,
 };
 
 const SAFETY = `\
 Auto-clarity: drop TELEGRAPH MODE for security warnings (including thinking), irreversible action confirmations, or when user gets confused. Resume telegraph after.
-Boundaries: normal high-quality code + full comments. Compress explanations outside files only. User say stop/exit telegraph mode or "use normal mode" stops telegraph mode.`;
+Boundaries: normal high-quality code + full comments. Compress explanations outside files only. Final responses are ALWAYS natural language, even at ultra/wenyan. Telegraph never applies to the final response surface. User say stop/exit telegraph mode or "use normal mode" stops telegraph mode.`;
 
 // ---------------------------------------------------------------------------
 // Model bypass — GPT and Claude models skip the extension entirely

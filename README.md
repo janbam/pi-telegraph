@@ -2,7 +2,7 @@
 
 **Think wide. Speak telegraph.**
 
-A [pi](https://github.com/mariozechner/pi) extension that applies telegraphic compression to both model thinking and text responses while preserving full technical accuracy. Forked from `pi-caveman`, with a modified prompt that treats compression as an idiom, not a persona.
+A [pi](https://github.com/mariozechner/pi) extension that applies telegraphic compression to model thinking and intermediary progress text while preserving full technical accuracy. Final responses stay natural language. Forked from `pi-caveman`, with a modified prompt that treats compression as an idiom, not a persona.
 
 Telegraph mode does not ask the model to think less. It asks the model to write each thought more densely, then spend the saved budget on broader reasoning: alternatives, counterchecks, risks, and verification. Verbosity follows a sliding scale: simple thoughts stay tiny; complex thoughts get enough words to keep nuance intact.
 
@@ -86,7 +86,7 @@ Note: these levels were inherited from `pi-caveman` and have not yet been tested
 
 ## How It Works
 
-The extension hooks `before_agent_start` to append telegraph communication rules to the system prompt at the selected intensity. Those rules apply to hidden thinking and visible text responses from the first token of each turn.
+The extension hooks `before_agent_start` to append telegraph communication rules to the system prompt at the selected intensity. Those rules apply to hidden thinking and intermediary progress text from the first token of each turn. Final responses stay natural language at every level.
 
 The prompt tells the model to compress recoverable grammar, not meaning. It keeps useful uncertainty, causal detail, creativity, and tradeoffs. More complex reasoning may still use more words; the point is to remove linguistic padding, not amputate thought. Auto-clarity rules tell the model to drop telegraph mode for security warnings, irreversible action confirmations, or when the user gets confused.
 
@@ -96,7 +96,7 @@ Within a session, the active level is stored as a custom session entry and resto
 
 ## Warning
 
-Telegraph mode affects model-side thinking instructions and visible text responses, but it does not reduce input tokens, file read/write tool calls, tool output, or code written to disk. Large codebase tasks can still be expensive. The intended win is denser reasoning traces and denser user-facing prose, not magical token alchemy. Bruno would object to that kind of numerology.
+Telegraph mode affects model-side thinking instructions and progress text, but it does not reduce input tokens, file read/write tool calls, tool output, or code written to disk. Large codebase tasks can still be expensive. The intended win is denser reasoning traces, not magical token alchemy on final answers, which stay natural prose. Bruno would object to that kind of numerology.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/janbam/pi-telegraph/main/shoutout.jpg" alt="pi-telegraph glowing review" width="600">
@@ -106,7 +106,7 @@ But for the cost-conscious, every token counts ;)
 
 ## Credits
 
-Forked from `pi-caveman`, which is based on [caveman](https://github.com/JuliusBrussee/caveman) by [Julius Brussee](https://github.com/JuliusBrussee). `pi-telegraph` keeps the extension structure and changes the prompt framing toward telegraphic compression for both thinking and responses.
+Forked from `pi-caveman`, which is based on [caveman](https://github.com/JuliusBrussee/caveman) by [Julius Brussee](https://github.com/JuliusBrussee). `pi-telegraph` keeps the extension structure and changes the prompt framing toward telegraphic compression for thinking and progress text, with final responses in natural language.
 
 `micro` mode prompt based on [caveman-micro](https://github.com/kuba-guzik/caveman-micro) by [Kuba Guzik](https://github.com/kuba-guzik).
 
