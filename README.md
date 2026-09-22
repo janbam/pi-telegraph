@@ -90,6 +90,8 @@ The extension hooks `before_agent_start` to append telegraph communication rules
 
 The prompt tells the model to compress recoverable grammar, not meaning. It keeps useful uncertainty, causal detail, creativity, and tradeoffs. More complex reasoning may still use more words; the point is to remove linguistic padding, not amputate thought. Auto-clarity rules tell the model to drop telegraph mode for security warnings, irreversible action confirmations, or when the user gets confused.
 
+Models whose provider, id, or display name contains `gpt` or `claude` bypass the extension completely: no prompt injection and no status bar indicator. The configured level is preserved and resumes when switching back to a covered model. `/telegraph` still accepts level changes while bypassed and reports the bypass instead of claiming telegraph is active.
+
 Within a session, the active level is stored as a custom session entry and restored on resume. Across sessions, persistent config (`~/.pi/agent/telegraph.json`) provides the default level and status bar preference.
 
 ## Warning

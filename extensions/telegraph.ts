@@ -222,6 +222,23 @@ Auto-clarity: drop TELEGRAPH MODE for security warnings (including thinking), ir
 Boundaries: normal high-quality code + full comments. Compress explanations outside files only. User say stop/exit telegraph mode or "use normal mode" stops telegraph mode.`;
 
 // ---------------------------------------------------------------------------
+// Model bypass — GPT and Claude models skip the extension entirely
+// ---------------------------------------------------------------------------
+
+/** Model id/name/provider substrings that disable telegraph injection + status. */
+const BYPASS_KEYWORDS = ["gpt", "claude"] as const;
+
+type BypassableModel = Pick<NonNullable<ExtensionContext["model"]>, "provider" | "id" | "name">;
+
+/** True when the active model matches a bypass keyword (case-insensitive). */
+function isBypassedModel(model: BypassableModel | undefined): boolean {
+	// No model resolved yet — don't bypass, normal level handling applies.
+	if (!model) return false;
+	const haystack = `${model.provider} ${model.id} ${model.name}`.toLowerCase();
+	return BYPASS_KEYWORDS.some((keyword) => haystack.includes(keyword));
+}
+
+// ---------------------------------------------------------------------------
 // Extension
 // ---------------------------------------------------------------------------
 
@@ -255,9 +272,15 @@ export default function telegraph(pi: ExtensionAPI) {
 		frameIndex = 0;
 	}
 
-	function syncStatus(ctx: Pick<ExtensionContext, "ui">) {
+	function syncStatus(ctx: Pick<ExtensionContext, "ui" | "model">) {
 		stopAnimation();
 		const theme = ctx.ui.theme;
+
+		// Bypassed models hide the extension completely: no prompt, no status.
+		if (isBypassedModel(ctx.model)) {
+			ctx.ui.setStatus("telegraph", "");
+			return;
+		}
 
 		if (level === "off" || !config.showStatus) {
 			ctx.ui.setStatus("telegraph", "");
@@ -330,6 +353,12 @@ export default function telegraph(pi: ExtensionAPI) {
 		isActive = false;
 	});
 
+	// -- Bypass check on model change: hide status when a GPT/Claude model is active --
+
+	pi.on("model_select", async (_event, ctx) => {
+		syncStatus(ctx);
+	});
+
 	// -- /telegraph command --
 
 	pi.registerCommand("telegraph", {
@@ -362,10 +391,16 @@ export default function telegraph(pi: ExtensionAPI) {
 			pi.appendEntry("telegraph-level", { level });
 			syncStatus(ctx);
 
-			ctx.ui.notify(
-				level === "off" ? "Telegraph mode off." : `Telegraph: ${ANIMATIONS[level].label}`,
-				"info",
-			);
+			// Bypassed models ignore the level, so don't claim telegraph is active.
+			// The level is still stored and applies when switching back to a covered model.
+			if (isBypassedModel(ctx.model)) {
+				ctx.ui.notify("Telegraph bypassed for this model.", "info");
+			} else {
+				ctx.ui.notify(
+					level === "off" ? "Telegraph mode off." : `Telegraph: ${ANIMATIONS[level].label}`,
+					"info",
+				);
+			}
 		},
 	});
 
@@ -506,8 +541,10 @@ export default function telegraph(pi: ExtensionAPI) {
 
 	// -- Inject telegraph rules into system prompt --
 
-	pi.on("before_agent_start", async (event) => {
+	pi.on("before_agent_start", async (event, ctx) => {
 		await ensureConfigLoaded();
+		// Bypassed models get no telegraph injection at all.
+		if (isBypassedModel(ctx.model)) return;
 		if (level === "off") return;
 		if (level === "micro") {
 			return {
