@@ -252,6 +252,25 @@ const BYPASS_KEYWORDS = ["gpt", "claude"] as const;
 
 type BypassableModel = Pick<NonNullable<ExtensionContext["model"]>, "provider" | "id" | "name">;
 
+/** Name of the structured system prompt section telegraph owns; rendered as `<telegraph>...</telegraph>`. */
+const PROMPT_SECTION = "telegraph";
+
+/** Prompt section text for an active level. Stable per level, so repeated runs add no transcript delta. */
+function promptSectionFor(level: Exclude<Level, "off">): string {
+	return level === "micro" ? MICRO_PROMPT : `${BASE}\n\n${INTENSITY[level]}\n\n${SAFETY}`;
+}
+
+/** Latest level recorded on the current branch, or undefined when the branch has none. Other branches are ignored. */
+function levelOnBranch(sessionManager: ExtensionContext["sessionManager"]): Level | undefined {
+	let found: Level | undefined;
+	for (const entry of sessionManager.getBranch()) {
+		if (entry.type === "custom" && entry.customType === "telegraph-level") {
+			found = (entry.data as { level: Level } | undefined)?.level ?? found;
+		}
+	}
+	return found;
+}
+
 /** True when the active model matches a bypass keyword (case-insensitive). */
 function isBypassedModel(model: BypassableModel | undefined): boolean {
 	// No model resolved yet — don't bypass, normal level handling applies.
@@ -273,14 +292,9 @@ export default function telegraph(pi: ExtensionAPI) {
 	let configLoadPromise: Promise<void> | null = null;
 
 	const ensureConfigLoaded = async () => {
-		if (!configLoadPromise) {
-			configLoadPromise = (async () => {
-				config = await loadConfig();
-				if (level === "off" && config.defaultLevel !== "off") {
-					level = config.defaultLevel;
-				}
-			})();
-		}
+		configLoadPromise ??= loadConfig().then((loaded) => {
+			config = loaded;
+		});
 		await configLoadPromise;
 	};
 
@@ -335,28 +349,24 @@ export default function telegraph(pi: ExtensionAPI) {
 		timer = setInterval(renderFrame, anim.interval);
 	}
 
-	// -- Restore state on session load --
+	// -- Restore state on session load and /tree navigation --
 
 	pi.on("session_start", async (_event, ctx) => {
 		await ensureConfigLoaded();
 
-		// Check for session-level override first (resuming a session)
-		let sessionLevel: Level | null = null;
-		for (const entry of ctx.sessionManager.getEntries()) {
-			if (entry.type === "custom" && entry.customType === "telegraph-level") {
-				sessionLevel = (entry.data as { level: Level })?.level ?? null;
-			}
-		}
+		// The current branch's level wins; a branch without one starts at the configured default.
+		const branchLevel = levelOnBranch(ctx.sessionManager);
+		level = branchLevel ?? config.defaultLevel;
+		// Record the default so later branches off this point inherit it.
+		if (branchLevel === undefined && level !== "off") pi.appendEntry("telegraph-level", { level });
 
-		if (sessionLevel !== null) {
-			// Resuming — use session state
-			level = sessionLevel;
-		} else if (config.defaultLevel !== "off") {
-			// New session — apply default from config
-			level = config.defaultLevel;
-			pi.appendEntry("telegraph-level", { level });
-		}
+		syncStatus(ctx);
+	});
 
+	pi.on("session_tree", async (_event, ctx) => {
+		await ensureConfigLoaded();
+		// Follow the level of the branch just navigated to. Nothing is recorded: navigation is not a level change.
+		level = levelOnBranch(ctx.sessionManager) ?? config.defaultLevel;
 		syncStatus(ctx);
 	});
 
@@ -561,20 +571,15 @@ export default function telegraph(pi: ExtensionAPI) {
 		});
 	}
 
-	// -- Inject telegraph rules into system prompt --
+	// -- Inject telegraph rules as a structured system prompt section --
 
 	pi.on("before_agent_start", async (event, ctx) => {
 		await ensureConfigLoaded();
-		// Bypassed models get no telegraph injection at all.
-		if (isBypassedModel(ctx.model)) return;
-		if (level === "off") return;
-		if (level === "micro") {
-			return {
-				systemPrompt: `${event.systemPrompt}\n\n${MICRO_PROMPT}`,
-			};
-		}
-		return {
-			systemPrompt: `${event.systemPrompt}\n\n${BASE}\n\n${INTENSITY[level]}\n\n${SAFETY}`,
-		};
+		// Off or bypassed: leave the section out. Each run starts from pi's base options, so an
+		// omitted section is removed from the prompt once and then stays absent.
+		if (level === "off" || isBypassedModel(ctx.model)) return;
+		// Same text on every run means no transcript delta and an intact prompt cache.
+		// Never return `systemPrompt`: forcing the whole prompt bypasses pi's section diffing.
+		event.systemPromptOptions.sections[PROMPT_SECTION] = promptSectionFor(level);
 	});
 }

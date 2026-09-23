@@ -35,6 +35,8 @@ Telegraph mode does not ask the model to think less. It asks the model to write 
 pi install git:github.com/janbam/pi-telegraph
 ```
 
+Requires pi 0.86 or newer, which introduced structured system prompt sections.
+
 ## Usage
 
 ### Toggle Mode
@@ -86,13 +88,13 @@ Note: these levels were inherited from `pi-caveman` and have not yet been tested
 
 ## How It Works
 
-The extension hooks `before_agent_start` to append telegraph communication rules to the system prompt at the selected intensity. Those rules apply to hidden thinking and intermediary progress text from the first token of each turn. Final responses stay natural language at every level.
+The extension hooks `before_agent_start` and adds the telegraph communication rules for the selected intensity as a structured `<telegraph>` system prompt section. It never replaces the whole system prompt. The section text is identical on every turn, so it does not break the provider prompt cache. Changing the level rewrites the section once. On stock pi, runs started by another extension's `pi.sendMessage(..., { triggerTurn: true })` still remove the section and add it back one turn later. The [janbam/pi-mono](https://github.com/janbam/pi-mono) fork keeps it. Those rules apply to hidden thinking and intermediary progress text from the first token of each turn. Final responses stay natural language at every level.
 
 The prompt tells the model to compress recoverable grammar, not meaning. It keeps useful uncertainty, causal detail, creativity, and tradeoffs. More complex reasoning may still use more words; the point is to remove linguistic padding, not amputate thought. Auto-clarity rules tell the model to drop telegraph mode for security warnings, irreversible action confirmations, or when the user gets confused.
 
 Models whose provider, id, or display name contains `gpt` or `claude` bypass the extension completely: no prompt injection and no status bar indicator. The configured level is preserved and resumes when switching back to a covered model. `/telegraph` still accepts level changes while bypassed and reports the bypass instead of claiming telegraph is active.
 
-Within a session, the active level is stored as a custom session entry and restored on resume. Across sessions, persistent config (`~/.pi/agent/telegraph.json`) provides the default level and status bar preference.
+Within a session, the active level is stored as a custom session entry. On resume and after `/tree` navigation, the level follows the latest entry on the current branch, and a branch without one uses the configured default. Across sessions, persistent config (`~/.pi/agent/telegraph.json`) provides the default level and status bar preference.
 
 ## Warning
 
